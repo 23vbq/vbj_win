@@ -2,7 +2,7 @@
 
 CC = g++
 
-SRCS := main.cpp card.cpp
+SRCS := main.cpp card.cpp quicksort.cpp
 OUT := vbj
 
 all: buildgame

@@ -1,3 +1,6 @@
+#define ERROR_COLOR 12
+#define DEFAULT_COLOR 7
+
 #include <stdio.h>
 #include <conio.h>
 #include <iostream>
@@ -7,11 +10,13 @@
 #include <windows.h>
 
 #include "card.hpp"
+#include "quicksort.hpp"
 
 using namespace std;
 
 HANDLE hConsole;
 bool game_loop = true;
+bool round_ends;
 int input;
 
 Card card_deck[52];
@@ -26,10 +31,17 @@ void getinput();
 void SetupDeck();
 void ShuffleDeck();
 template<typename T>
-bool VectorContains(vector<T> v, T value);
-void GiveCard(vector<Card*> &hand);
-void PrintCards(vector<Card*> hand, const char* title, bool printAll);
+bool VectorContains(vector<T>, T);
+void GiveCard(vector<Card*>&);
+void PrintCards(vector<Card*>, const char*, bool);
 void PrintDecisions();
+bool HandlePlayerMove();
+void Hit();
+void Stand();
+void Split();
+void Insurance();
+int CalculateHandSum(vector<Card*>);
+void printerr(const char*);
 void Test();
 //void signalHandler(int signum);
 //void FreeMem();
@@ -53,15 +65,40 @@ int main(){
         for(int i = 0; i < 2; i++)
             GiveCard(dealer_hand);
 
-        bool game_ends = false;
-        while(!game_ends){
-            //system("cls");
+        // Player round
+        round_ends = false;
+        while(!round_ends){
+            system("cls");
             printf("Input was: %d\n\n", input);
             PrintCards(dealer_hand, "Dealer", false);
             PrintCards(player_hand, "Player", true);
             PrintDecisions();
-            getinput();
+            int sum = CalculateHandSum(player_hand);
+            if(sum >= 21) {
+                break;
+            }
+            printf("\n\nSum: %d", sum);
+            while(!HandlePlayerMove());
         }
+
+        /* NEED TO WRITE HANDLE TO PLAYER LOSE*/
+
+        // Dealer round
+        round_ends = false;
+        while(!round_ends){
+            system("cls");
+            printf("Input was: %d\n\n", input);
+            PrintCards(dealer_hand, "Dealer", false);
+            PrintCards(player_hand, "Player", true);
+            int sum = CalculateHandSum(dealer_hand);
+            
+            // Simulate decisions
+            Sleep(2 * 1000);
+            if (sum < 17){
+                GiveCard(dealer_hand);
+            } else break;
+        }
+        // Debug print
         for(auto p : player_hand){
             printf("%d - %d\n", p->GetValue(), p->Type);
         }
@@ -129,12 +166,63 @@ void PrintCards(vector<Card*> hand, const char* title, bool printAll){
 }
 void PrintDecisions(){
     int k = 1;
+    printf("Moves:\n");
     printf("\n%d. Hit\n", k++);
     printf("%d. Stand\n", k++);
     if(player_hand.size() == 2){
         if(player_hand[0]->Value == player_hand[1]->Value) printf("%d. Split\n", k++);
         if(dealer_hand[0]->Value == 14) printf("%d. Insurance\n", k++);
     } 
+}
+bool HandlePlayerMove(){
+    getinput();
+    if (input == '1') {Hit(); return true;}
+    else if (input == '2') {Stand(); return true;}
+    else if (player_hand.size() == 2){
+        if (input == '3'){
+            if (player_hand[0]->Value == player_hand[1]->Value) {Split(); return true;}
+            else if (dealer_hand[0]->Value == 14) {Insurance(); return true;}
+        }
+        else if (input == '4' && dealer_hand[0]->Value == 14) {Insurance(); return true;}
+    }
+    printerr("Invalid move...\n");
+    return false;
+}
+
+// Moves
+void Hit(){
+    GiveCard(player_hand);
+}
+void Stand(){
+    round_ends = true;
+}
+void Split(){
+    
+}
+void Insurance(){
+
+}
+int CalculateHandSum(vector<Card*> hand){
+    int* values = new int[hand.size()];
+    for (int i = 0; i < hand.size(); i++)
+        values[i] = hand.at(i)->GetValue();
+    quickSort(values, 0, hand.size() - 1);
+    /*printf("\n\n"); // Debug
+    for (int i = 0; i < hand.size(); i++)
+        printf("%d|", values[i]);
+    */
+    int sum = 0;
+    for(int i = 0; i < hand.size(); i++){
+        sum += values[i];
+        if(values[i] == 11 && sum > 21) sum -= 10;
+    }
+    delete values;
+    return sum;
+}
+void printerr(const char* info){
+    SetConsoleTextAttribute(hConsole, ERROR_COLOR);
+    printf("\33[2K\r  %s", info);
+    SetConsoleTextAttribute(hConsole, DEFAULT_COLOR);
 }
 void Test(){
     int index;

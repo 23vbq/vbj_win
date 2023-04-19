@@ -1,5 +1,5 @@
-#ifndef card_h
-#define card_h
+#ifndef card_hpp
+#define card_hpp
 #include "cardType.hpp"
 
 class Card{
