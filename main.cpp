@@ -41,6 +41,9 @@ void Stand();
 void Split();
 void Insurance();
 int CalculateHandSum(vector<Card*>);
+void WinLogic();
+void PlayerLoseHandle();
+void PlayerWinHandle();
 void printerr(const char*);
 void Test();
 //void signalHandler(int signum);
@@ -88,7 +91,7 @@ int main(){
         while(!round_ends){
             system("cls");
             printf("Input was: %d\n\n", input);
-            PrintCards(dealer_hand, "Dealer", false);
+            PrintCards(dealer_hand, "Dealer", true);
             PrintCards(player_hand, "Player", true);
             int sum = CalculateHandSum(dealer_hand);
             
@@ -98,6 +101,10 @@ int main(){
                 GiveCard(dealer_hand);
             } else break;
         }
+
+        // Game end
+        WinLogic();
+
         // Debug print
         for(auto p : player_hand){
             printf("%d - %d\n", p->GetValue(), p->Type);
@@ -219,9 +226,26 @@ int CalculateHandSum(vector<Card*> hand){
     delete values;
     return sum;
 }
+void WinLogic(){
+    int player_sum = CalculateHandSum(player_hand);
+    if (player_sum > 21) {PlayerLoseHandle(); return;}
+    if (player_sum == 21) {PlayerWinHandle(); return;}
+
+    int dealer_sum = CalculateHandSum(dealer_hand);
+    if (dealer_sum > 21) {PlayerWinHandle(); return;}
+    if (player_sum > dealer_sum) {PlayerWinHandle(); return;}
+    PlayerLoseHandle();
+    return;
+}
+void PlayerLoseHandle(){
+    printerr("Debug: Player Lose");
+}
+void PlayerWinHandle(){
+    printerr("Debug: Player Won");
+}
 void printerr(const char* info){
     SetConsoleTextAttribute(hConsole, ERROR_COLOR);
-    printf("\33[2K\r  %s", info);
+    printf("\n%s", info);
     SetConsoleTextAttribute(hConsole, DEFAULT_COLOR);
 }
 void Test(){
