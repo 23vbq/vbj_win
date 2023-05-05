@@ -19,6 +19,9 @@ bool game_loop = true;
 bool round_ends;
 int input;
 
+float player_credits = 100.0f;
+float bet;
+
 Card card_deck[52];
 const char* type_icon[] = {"♣", "♦", "♠", "♥"};
 const char* special_card_names[] = {"J", "Q", "K", "A"};
@@ -28,6 +31,8 @@ vector<Card*> player_hand;
 vector<Card*> dealer_hand;
 
 void getinput();
+void AskForBet();
+void PrintCredits();
 void SetupDeck();
 void ShuffleDeck();
 template<typename T>
@@ -35,6 +40,7 @@ bool VectorContains(vector<T>, T);
 void GiveCard(vector<Card*>&);
 void PrintCards(vector<Card*>, const char*, bool);
 void PrintDecisions();
+void PrintSums(int, int);
 bool HandlePlayerMove();
 void Hit();
 void Stand();
@@ -43,7 +49,7 @@ void Insurance();
 int CalculateHandSum(vector<Card*>);
 void WinLogic();
 void PlayerLoseHandle();
-void PlayerWinHandle();
+void PlayerWinHandle(bool);
 void printerr(const char*);
 void Test();
 //void signalHandler(int signum);
@@ -60,6 +66,10 @@ int main(){
     // Game start
     while(game_loop){
         system("cls");
+        // Bet
+        AskForBet();
+
+        // Shuffle
         if(shuffle.size() == 0) ShuffleDeck();
         player_hand.clear();
         dealer_hand.clear();
@@ -72,7 +82,8 @@ int main(){
         round_ends = false;
         while(!round_ends){
             system("cls");
-            printf("Input was: %d\n\n", input);
+            //printf("Input was: %d\n\n", input);
+            PrintCredits();
             PrintCards(dealer_hand, "Dealer", false);
             PrintCards(player_hand, "Player", true);
             PrintDecisions();
@@ -80,7 +91,8 @@ int main(){
             if(sum >= 21) {
                 break;
             }
-            printf("\n\nSum: %d", sum);
+            //printf("\n\nSum: %d", sum);
+            printf("> ");
             while(!HandlePlayerMove());
         }
 
@@ -90,7 +102,8 @@ int main(){
         round_ends = false;
         while(!round_ends){
             system("cls");
-            printf("Input was: %d\n\n", input);
+            //printf("Input was: %d\n\n", input);
+            PrintCredits();
             PrintCards(dealer_hand, "Dealer", true);
             PrintCards(player_hand, "Player", true);
             int sum = CalculateHandSum(dealer_hand);
@@ -103,16 +116,17 @@ int main(){
         }
 
         // Game end
+        Sleep(2 * 1000);
         WinLogic();
 
         // Debug print
-        for(auto p : player_hand){
+        /*for(auto p : player_hand){
             printf("%d - %d\n", p->GetValue(), p->Type);
         }
         for(auto p : dealer_hand){
             printf("%d - %d\n", p->GetValue(), p->Type);
         }
-        input = _getch();
+        input = _getch();*/
     }
     //FreeMem();
     return 0;
@@ -121,6 +135,22 @@ int main(){
 void getinput(){
     input = _getch();
     if(input == 3) exit(1);
+}
+void AskForBet(){
+    bet = 0;
+    printf("Credits: %.2f\n", player_credits);
+    printf("Set your bet: ");
+    while(true){
+        scanf("%f", &bet);
+        fflush(stdin);
+        if (bet == 0 || bet > player_credits){
+            printerr("Invalid bet...\nTry again: ");
+        }
+        else break;
+    }
+}
+void PrintCredits(){
+    printf("Credits: %.2f\nBet:%.2f\n", player_credits, bet);
 }
 void SetupDeck(){
     Card * p;
@@ -181,6 +211,9 @@ void PrintDecisions(){
         if(dealer_hand[0]->Value == 14) printf("%d. Insurance\n", k++);
     } 
 }
+void PrintSums(int player, int dealer){
+    printf("Player has: %d    Dealer has: %d\n", player, dealer);
+}
 bool HandlePlayerMove(){
     getinput();
     if (input == '1') {Hit(); return true;}
@@ -229,19 +262,34 @@ int CalculateHandSum(vector<Card*> hand){
 void WinLogic(){
     int player_sum = CalculateHandSum(player_hand);
     if (player_sum > 21) {PlayerLoseHandle(); return;}
-    if (player_sum == 21) {PlayerWinHandle(); return;}
+    if (player_sum == 21) {PlayerWinHandle(true); return;}
 
     int dealer_sum = CalculateHandSum(dealer_hand);
-    if (dealer_sum > 21) {PlayerWinHandle(); return;}
-    if (player_sum > dealer_sum) {PlayerWinHandle(); return;}
+    if (dealer_sum > 21) {PlayerWinHandle(false); return;}
+    if (player_sum > dealer_sum) {PlayerWinHandle(false); return;}
     PlayerLoseHandle();
     return;
 }
 void PlayerLoseHandle(){
-    printerr("Debug: Player Lose");
+    //printerr("Debug: Player Lose");
+    player_credits -= bet;
+    system("cls");
+    printf("You lose %.2f :C\n", bet);
+    PrintSums(CalculateHandSum(player_hand), CalculateHandSum(dealer_hand));
+    printf("Credits: %.2f\n", player_credits);
+    printf("\nPress any key to continue...");
+    getinput();
 }
-void PlayerWinHandle(){
-    printerr("Debug: Player Won");
+void PlayerWinHandle(bool canBeBlackjack){
+    //printerr("Debug: Player Won");
+    player_credits += bet;
+    if (canBeBlackjack && player_hand.size() == 2) player_credits += bet * 0.5f;
+    system("cls");
+    printf("You win %.2f :D\n", (canBeBlackjack && player_hand.size() == 2 ? bet + bet * 0.5f : bet));
+    PrintSums(CalculateHandSum(player_hand), CalculateHandSum(dealer_hand));
+    printf("Credits: %.2f\n", player_credits);
+    printf("\nPress any key to continue...");
+    getinput();
 }
 void printerr(const char* info){
     SetConsoleTextAttribute(hConsole, ERROR_COLOR);
